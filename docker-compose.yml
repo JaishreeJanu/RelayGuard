@@ -1,0 +1,54 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: relayguard-postgres
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    ports:
+      - "${POSTGRES_PORT}:5432"
+    volumes:
+      - relayguard_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d relayguard"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: relayguard-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - relayguard_redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  email_mock:
+    image: python:3.11-slim
+    working_dir: /code
+    volumes:
+      - ./:/code
+    command: sh -c "pip install --no-cache-dir -r requirements.txt && uvicorn email_mock.main:app --host 0.0.0.0 --port 8001"
+    ports:
+      - "8001:8001"
+
+  frontend:
+    build: ./frontend
+    container_name: relayguard_frontend
+    volumes:
+      - ./frontend:/code
+      - /code/node_modules  # Named exclusion volume: prevents container dependencies from being overridden by your computer
+    ports:
+      - "5173:5173"
+    environment:
+      - NODE_ENV=development
+
+volumes:
+  relayguard_pgdata:
+  relayguard_redisdata:
