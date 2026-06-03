@@ -1,0 +1,72 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: relayguard_postgres_prod
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB}
+    volumes:
+      - postgres_production_data:/var/lib/postgresql/data
+    restart: always
+
+  redis:
+    image: redis:7-alpine
+    container_name: relayguard_redis_prod
+    volumes:
+      - redis_production_data:/data
+    restart: always
+
+  backend:
+    build:
+      context: .
+      dockerfile: app/Dockerfile
+    container_name: relayguard_backend_prod
+    environment:
+      - DATABASE_URL=${DATABASE_URL}
+      - REDIS_URL=${REDIS_URL}
+      - MOCK_VENDOR_URL=http://mock_vendor:8001/mock/send
+    depends_on:
+      - postgres
+      - redis
+    restart: always
+
+  worker:
+    build:
+      context: .
+      dockerfile: app/Dockerfile
+    container_name: relayguard_worker_prod
+    command: arq app.worker.WorkerSettings
+    environment:
+      - DATABASE_URL=${DATABASE_URL}
+      - REDIS_URL=${REDIS_URL}
+      - MOCK_VENDOR_URL=http://mock_vendor:8001/mock/send
+    depends_on:
+      - postgres
+      - redis
+    restart: always
+
+  mock_vendor:
+    build:
+      context: ./mock_vendor
+      dockerfile: Dockerfile
+    container_name: relayguard_vendor_prod
+    restart: always
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: relayguard_frontend_prod
+    environment:
+      - VITE_API_URL=${VITE_API_URL}
+      - VITE_VENDOR_URL=${VITE_VENDOR_URL}
+    depends_on:
+      - backend
+    restart: always
+
+volumes:
+  postgres_production_data:
+  redis_production_data:

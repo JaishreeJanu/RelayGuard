@@ -18,12 +18,15 @@ export default function App() {
 
   // --- ENGINE DATA PIPELINE ---
   const fetchTelemetry = async () => {
+    // Dynamically fallback to window.location origin if env is not provided
+    const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+    const vendorBase = import.meta.env.VITE_VENDOR_URL || 'http://localhost:8001';
     try {
-      const backendRes = await fetch('http://localhost:8000/api/v1/notifications/status');
+      const backendRes = await fetch('${apiBase}/api/v1/notifications/status');
       const backendJson = await backendRes.json();
       setBackendData(backendJson);
 
-      const vendorRes = await fetch('http://localhost:8001/chaos/state');
+      const vendorRes = await fetch('${vendorBase}/chaos/state');
       const vendorJson = await vendorRes.json();
       setVendorState(vendorJson.current_state);
     } catch (error) {
@@ -32,9 +35,10 @@ export default function App() {
   };
 
   const toggleChaosState = async (targetState) => {
+    const vendorBase = import.meta.env.VITE_VENDOR_URL || 'http://localhost:8001';
     setMutatingChaos(true);
     try {
-      const response = await fetch('http://localhost:8001/chaos/state', {
+      const response = await fetch('${vendorBase}/chaos/state', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ state: targetState })

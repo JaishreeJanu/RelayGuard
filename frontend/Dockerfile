@@ -1,16 +1,33 @@
-FROM node:20-alpine
+# FROM node:20-alpine
 
-WORKDIR /code
+# WORKDIR /code
 
-# Copy package descriptors first to cache layer dependencies cleanly
+# # Copy package descriptors first to cache layer dependencies cleanly
+# COPY package*.json ./
+
+# RUN npm install
+
+# # Copy over the rest of the frontend source code files
+# COPY . .
+
+# EXPOSE 5173
+
+# # Execute the development environment command
+# CMD ["npm", "run", "dev"]
+
+
+# --- STAGE 1: COMPILE THE REACT ASSETS ---
+FROM node:20-alpine AS build
+WORKDIR /app
 COPY package*.json ./
-
 RUN npm install
-
-# Copy over the rest of the frontend source code files
 COPY . .
+# Compile React source files into an optimized /dist directory
+RUN npm run build
 
-EXPOSE 5173
-
-# Execute the development environment command
-CMD ["npm", "run", "dev"]
+# --- STAGE 2: SERVE ASSETS SECURELY VIA NGINX ---
+FROM nginx:alpine
+# Copy compiled static files from Stage 1 straight to Nginx's HTML root
+COPY --from=build /app/dist /usr/share/nginx/html
+EXPOSE 80
+CMD ["nginx", "-g", "daemon off;"]
