@@ -60,7 +60,7 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
     container_name: relayguard_frontend_prod
-    environment:
+    args:
       - VITE_API_URL=${VITE_API_URL}
       - VITE_VENDOR_URL=${VITE_VENDOR_URL}
     depends_on:
