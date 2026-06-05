@@ -10,6 +10,12 @@ services:
       - POSTGRES_DB=${POSTGRES_DB}
     volumes:
       - postgres_production_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 3s
+      timeout: 3s
+      retries: 5
+      start_period: 5s
     restart: always
 
   redis:
@@ -17,6 +23,11 @@ services:
     container_name: relayguard_redis_prod
     volumes:
       - redis_production_data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli ping"]
+      interval: 3s
+      timeout: 3s
+      retries: 5
     restart: always
 
   backend:
@@ -32,7 +43,9 @@ services:
       - MOCK_VENDOR_URL=http://mock_vendor:8001/mock/send
     depends_on:
       - postgres
+          condition: service_healthy
       - redis
+          condition: service_healthy
     restart: always
 
   worker:
@@ -47,7 +60,9 @@ services:
       - MOCK_VENDOR_URL=http://mock_vendor:8001/mock/send
     depends_on:
       - postgres
+          condition: service_healthy
       - redis
+          condition: service_healthy
     restart: always
 
   mock_vendor:
