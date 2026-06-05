@@ -35,17 +35,17 @@ services:
       context: .
       dockerfile: app/Dockerfile
     container_name: relayguard_backend_prod
-    expose:
-      - 8000
+    command: sh -c "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000"
     environment:
+      - SERVICE_URL_BACKEND_8000
       - DATABASE_URL=${DATABASE_URL}
       - REDIS_URL=${REDIS_URL}
       - MOCK_VENDOR_URL=http://mock_vendor:8001/mock/send
     depends_on:
-      - postgres:
-          condition: service_healthy
-      - redis:
-          condition: service_healthy
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
     restart: always
 
   worker:
@@ -59,10 +59,12 @@ services:
       - REDIS_URL=${REDIS_URL}
       - MOCK_VENDOR_URL=http://mock_vendor:8001/mock/send
     depends_on:
-      - postgres:
-          condition: service_healthy
-      - redis:
-          condition: service_healthy
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      mock_vendor:
+        condition: service_started
     restart: always
 
   mock_vendor:
@@ -70,8 +72,8 @@ services:
       context: ./mock_vendor
       dockerfile: Dockerfile
     container_name: relayguard_vendor_prod
-    expose:
-      - 8001
+    environment:
+      - SERVICE_URL_MOCK_VENDOR_8001
     restart: always
 
   frontend:
@@ -82,8 +84,8 @@ services:
         - VITE_API_URL=${VITE_API_URL}
         - VITE_VENDOR_URL=${VITE_VENDOR_URL}
     container_name: relayguard_frontend_prod
-    expose:
-      - 80
+    environment:
+      - SERVICE_URL_FRONTEND_80
     depends_on:
       - backend
     restart: always
