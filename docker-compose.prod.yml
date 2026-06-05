@@ -42,9 +42,9 @@ services:
       - REDIS_URL=${REDIS_URL}
       - MOCK_VENDOR_URL=http://mock_vendor:8001/mock/send
     depends_on:
-      - postgres
+      - postgres:
           condition: service_healthy
-      - redis
+      - redis:
           condition: service_healthy
     restart: always
 
@@ -59,9 +59,9 @@ services:
       - REDIS_URL=${REDIS_URL}
       - MOCK_VENDOR_URL=http://mock_vendor:8001/mock/send
     depends_on:
-      - postgres
+      - postgres:
           condition: service_healthy
-      - redis
+      - redis:
           condition: service_healthy
     restart: always
 
